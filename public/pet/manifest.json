@@ -1,0 +1,97 @@
+{
+  "assetVersion": "bunny-girl-v2-nolabel-2d",
+  "defaultState": "idle",
+  "fallbackState": "idle",
+  "states": {
+    "idle": {
+      "fps": 5,
+      "loop": true,
+      "framesPath": "/pet/animations/idle",
+      "frames": [
+        "000.png",
+        "001.png",
+        "002.png",
+        "003.png",
+        "004.png",
+        "005.png",
+        "006.png",
+        "007.png"
+      ],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "walk_left": {
+      "fps": 6,
+      "loop": true,
+      "framesPath": "/pet/animations/walk_left",
+      "frames": ["000.png", "001.png", "002.png", "003.png"],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "walk_right": {
+      "fps": 6,
+      "loop": true,
+      "framesPath": "/pet/animations/walk_right",
+      "frames": ["000.png", "001.png", "002.png", "003.png", "004.png"],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "enter": {
+      "fps": 12,
+      "loop": false,
+      "framesPath": "/pet/animations/enter",
+      "frames": ["000.png", "001.png", "002.png"],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "exit": {
+      "fps": 12,
+      "loop": false,
+      "framesPath": "/pet/animations/exit",
+      "frames": ["000.png", "001.png", "002.png"],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "tap_happy": {
+      "fps": 14,
+      "loop": false,
+      "framesPath": "/pet/animations/tap_happy",
+      "frames": ["000.png", "001.png", "002.png", "003.png", "004.png", "005.png"],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "tap_annoyed": {
+      "fps": 14,
+      "loop": false,
+      "framesPath": "/pet/animations/tap_annoyed",
+      "frames": ["000.png", "001.png", "002.png", "003.png", "004.png", "005.png"],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    },
+    "read_idle": {
+      "fps": 8,
+      "loop": true,
+      "framesPath": "/pet/animations/read_idle",
+      "frames": [
+        "000.png",
+        "001.png",
+        "002.png",
+        "003.png",
+        "004.png",
+        "005.png",
+        "006.png",
+        "007.png"
+      ],
+      "size": { "width": 236, "height": 342 },
+      "anchor": { "x": 0.5, "y": 1 },
+      "hitbox": { "x": 58, "y": 46, "width": 120, "height": 250 }
+    }
+  }
+}
