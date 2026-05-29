@@ -1,6 +1,8 @@
-import { createNovelPayload } from "../shared/reading";
 import type { BunnyPetApi } from "../preload/preload";
+import { createNovelPayload } from "../shared/reading";
 import type { PetMotionState } from "../shared/types";
+
+type ReaderCommand = { type: "prompt-url" };
 
 export function installBrowserPreviewApi(): void {
   if (window.bunnyPet) {
@@ -8,22 +10,18 @@ export function installBrowserPreviewApi(): void {
   }
 
   const motionListeners = new Set<(state: PetMotionState) => void>();
-  const commandListeners = new Set<(command: { type: "prompt-url" }) => void>();
+  const commandListeners = new Set<(command: ReaderCommand) => void>();
   let paused = false;
   let walkRight = true;
 
   window.setInterval(() => {
     if (paused) {
-      emitMotion({ animation: "idle", paused, readerActive: false });
+      emitMotion(createPreviewMotion("idle", paused));
       return;
     }
 
     walkRight = !walkRight;
-    emitMotion({
-      animation: walkRight ? "walk_right" : "walk_left",
-      paused,
-      readerActive: false
-    });
+    emitMotion(createPreviewMotion(walkRight ? "walk_right" : "walk_left", paused));
   }, 3200);
 
   const api: BunnyPetApi = {
@@ -39,11 +37,7 @@ export function installBrowserPreviewApi(): void {
     },
     async setWalkingPaused(nextPaused) {
       paused = nextPaused;
-      const state: PetMotionState = {
-        animation: paused ? "idle" : "walk_right",
-        paused,
-        readerActive: false
-      };
+      const state = createPreviewMotion(paused ? "idle" : "walk_right", paused);
       emitMotion(state);
       return state;
     },
@@ -60,7 +54,7 @@ export function installBrowserPreviewApi(): void {
     endDrag() {},
     onMotionState(callback) {
       motionListeners.add(callback);
-      callback({ animation: "idle", paused, readerActive: false });
+      callback(createPreviewMotion("idle", paused));
       return () => motionListeners.delete(callback);
     },
     onReaderCommand(callback) {
@@ -76,4 +70,23 @@ export function installBrowserPreviewApi(): void {
       listener(state);
     }
   }
+}
+
+function createPreviewMotion(
+  animation: PetMotionState["animation"],
+  paused: boolean
+): PetMotionState {
+  return {
+    animation,
+    behavior: animation.startsWith("walk_") ? "roam" : "rest",
+    direction: animation.endsWith("_left")
+      ? "left"
+      : animation.endsWith("_right")
+        ? "right"
+        : null,
+    dragging: false,
+    offscreen: false,
+    paused,
+    readerActive: false
+  };
 }

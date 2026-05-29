@@ -1,12 +1,38 @@
 export type PetAnimationState =
   | "idle"
+  | "rest_corner"
+  | "walk_up"
+  | "walk_down"
   | "walk_left"
   | "walk_right"
+  | "run_up"
+  | "run_down"
+  | "run_left"
+  | "run_right"
   | "enter"
   | "exit"
+  | "drag_hold"
+  | "drag_release"
+  | "peek_left"
+  | "peek_right"
+  | "hide"
+  | "popout_left"
+  | "popout_right"
+  | "popout_top"
+  | "popout_bottom"
   | "tap_happy"
   | "tap_annoyed"
   | "read_idle";
+
+export type PetBehaviorMode =
+  | "rest"
+  | "roam"
+  | "hidden"
+  | "popout"
+  | "drag"
+  | "read";
+
+export type PetDirection = "left" | "right" | "up" | "down";
 
 export interface Point {
   x: number;
@@ -36,7 +62,7 @@ export interface PetManifest {
   assetVersion?: string;
   defaultState: PetAnimationState;
   fallbackState: PetAnimationState;
-  states: Record<PetAnimationState, AnimationDefinition>;
+  states: Partial<Record<PetAnimationState, AnimationDefinition>>;
 }
 
 export interface NovelPayload {
@@ -54,6 +80,10 @@ export interface ReaderSnapshot extends NovelPayload {
 
 export interface PetMotionState {
   animation: PetAnimationState;
+  behavior: PetBehaviorMode;
+  direction: PetDirection | null;
+  dragging: boolean;
+  offscreen: boolean;
   paused: boolean;
   readerActive: boolean;
 }

@@ -70,6 +70,33 @@ textarea {
   animation: bob 620ms ease-in-out infinite;
 }
 
+.petSprite--run_left,
+.petSprite--run_right,
+.petSprite--run_up,
+.petSprite--run_down {
+  animation-duration: 420ms;
+}
+
+.petSprite--rest_corner {
+  animation: breathe 1800ms ease-in-out infinite;
+}
+
+.petSprite--drag_hold {
+  animation: dragWiggle 460ms ease-in-out infinite;
+}
+
+.petSprite--drag_release,
+.petSprite--popout_left,
+.petSprite--popout_right,
+.petSprite--popout_top,
+.petSprite--popout_bottom {
+  animation: hop 520ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.petSprite--hide {
+  animation: vanish 520ms ease-out both;
+}
+
 .petSprite--tap_happy {
   animation: hop 760ms cubic-bezier(0.2, 0.9, 0.2, 1);
 }
@@ -93,10 +120,6 @@ textarea {
 }
 
 /* walk_left frames face right by default — flip horizontally for leftward movement. */
-.petSprite--walk_left .petFrame {
-  transform: scaleX(-1) translateZ(0);
-}
-
 .fallbackBunny {
   position: absolute;
   inset: 14px 20px 10px;
@@ -431,9 +454,34 @@ textarea {
   }
 }
 
+@keyframes breathe {
+  50% {
+    transform: translateX(-50%) translateY(2px) scale(var(--pet-scale));
+  }
+}
+
 @keyframes hop {
   35% {
     transform: translateX(-50%) translateY(-18px) scale(var(--pet-hop-scale));
+  }
+}
+
+@keyframes dragWiggle {
+  25% {
+    transform: translateX(calc(-50% - 3px)) rotate(-2deg)
+      scale(var(--pet-scale));
+  }
+
+  75% {
+    transform: translateX(calc(-50% + 3px)) rotate(2deg)
+      scale(var(--pet-scale));
+  }
+}
+
+@keyframes vanish {
+  100% {
+    opacity: 0.15;
+    transform: translateX(-50%) translateY(10px) scale(0.3);
   }
 }
 
