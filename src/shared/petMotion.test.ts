@@ -1,4 +1,14 @@
-import { clampWindowToBounds, createRandomVelocity, stepWindowMotion } from "./petMotion";
+import {
+  chooseHiddenRect,
+  choosePopoutPlacement,
+  chooseRestPlacement,
+  chooseWeightedBehavior,
+  clampWindowToBounds,
+  createRandomVelocity,
+  getMovementAnimation,
+  stepTowardTarget,
+  stepWindowMotion
+} from "./petMotion";
 
 describe("pet motion", () => {
   it("clamps the pet window inside the current work area", () => {
@@ -36,5 +46,76 @@ describe("pet motion", () => {
 
     expect(right.x).toBeGreaterThan(0);
     expect(left.x).toBeLessThan(0);
+  });
+
+  it("maps weighted behavior boundaries to 70/10/10/10 buckets", () => {
+    expect(chooseWeightedBehavior(() => 0.69)).toBe("rest");
+    expect(chooseWeightedBehavior(() => 0.7)).toBe("roam");
+    expect(chooseWeightedBehavior(() => 0.8)).toBe("hidden");
+    expect(chooseWeightedBehavior(() => 0.9)).toBe("popout");
+  });
+
+  it("steps toward a target and reports the dominant direction", () => {
+    const result = stepTowardTarget(
+      { x: 10, y: 10, width: 20, height: 20 },
+      { x: 30, y: 13, width: 20, height: 20 },
+      5
+    );
+
+    expect(result.direction).toBe("right");
+    expect(result.arrived).toBe(false);
+    expect(result.rect.x).toBeGreaterThan(10);
+  });
+
+  it("supports four-direction movement animation names", () => {
+    expect(getMovementAnimation("up", "walk")).toBe("walk_up");
+    expect(getMovementAnimation("down", "run")).toBe("run_down");
+  });
+
+  it("can choose a normal corner rest placement inside the work area", () => {
+    const placement = chooseRestPlacement(
+      { x: 0, y: 0, width: 60, height: 80 },
+      { x: 0, y: 0, width: 200, height: 200 },
+      () => 0.1
+    );
+
+    expect(placement.animation).toBe("rest_corner");
+    expect(placement.offscreen).toBe(false);
+    expect(placement.rect.x).toBeGreaterThanOrEqual(0);
+    expect(placement.rect.y).toBeGreaterThanOrEqual(0);
+  });
+
+  it("can choose a side peek placement that is partly offscreen", () => {
+    const placement = chooseRestPlacement(
+      { x: 0, y: 0, width: 60, height: 80 },
+      { x: 0, y: 0, width: 200, height: 200 },
+      () => 0.9
+    );
+
+    expect(placement.animation).toBe("peek_right");
+    expect(placement.offscreen).toBe(true);
+    expect(placement.rect.x).toBeGreaterThan(140);
+  });
+
+  it("places hidden behavior outside the normal work area", () => {
+    const hidden = chooseHiddenRect(
+      { x: 0, y: 0, width: 60, height: 80 },
+      { x: 0, y: 0, width: 200, height: 200 },
+      () => 0
+    );
+
+    expect(hidden.x).toBeLessThan(0);
+  });
+
+  it("creates a popout path from offscreen toward an onscreen target", () => {
+    const popout = choosePopoutPlacement(
+      { x: 0, y: 0, width: 60, height: 80 },
+      { x: 0, y: 0, width: 200, height: 200 },
+      () => 0
+    );
+
+    expect(popout.animation).toBe("popout_left");
+    expect(popout.start.x).toBeLessThan(popout.target.x);
+    expect(popout.direction).toBe("right");
   });
 });

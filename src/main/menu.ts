@@ -46,7 +46,7 @@ export function openPetContextMenu(
 ): void {
   const menu = Menu.buildFromTemplate([
     {
-      label: "看书模式",
+      label: "阅读模式",
       click: () => window.webContents.send("reader:command", { type: "prompt-url" })
     },
     {

@@ -1,35 +1,46 @@
 # Bunny Reader Pet
 
-一个 Windows 桌面摸鱼小宠物 MVP：透明置顶兔女郎桌宠、随机走动、点击反应、右键菜单，以及拖入小说网址后的单行阅读浮条。
+Windows 桌面兔女郎桌宠。当前版本保留小说阅读条和托盘菜单，同时加入新的自动行为调度：
 
-兔女郎本体可以左键按住拖动到屏幕内任意位置；单击仍会触发互动反应。
+- 70% 时间在角落或屏幕边缘安静休息
+- 10% 时间在屏幕内走动或跑动
+- 10% 时间短暂消失到屏幕外
+- 10% 时间从屏幕边缘突然串出来
+- 支持鼠标拖动，拖动中和松手后会切换专用动画
 
 ## Scripts
 
-- `npm.cmd install` 安装依赖
-- `npm.cmd run dev` 启动 Electron 开发版
-- `npm.cmd test` 运行单元测试
-- `npm.cmd run build` 类型检查并构建
+```powershell
+npm.cmd install
+npm.cmd run dev
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+```
 
-Windows PowerShell 可能会拦截 `npm.ps1`，所以命令里优先使用 `npm.cmd`。
+PowerShell 可能会拦截 `npm.ps1`，所以优先使用 `npm.cmd`。
 
 ## Pet Assets
 
-首版动画素材约定放在：
+运行时动画帧放在：
 
 ```text
 public/pet/animations/<state>/<frame>.png
 ```
 
-动作状态：
+每个 PNG 是 `236x342` 透明画布。帧列表、帧率、循环方式和命中区域在 `public/pet/manifest.json` 里配置。
 
-- `idle`
-- `walk_left`
-- `walk_right`
-- `enter`
-- `exit`
-- `tap_happy`
-- `tap_annoyed`
-- `read_idle`
+当前核心状态包括：
 
-每个动作的帧列表、帧率、循环方式和命中区域在 `public/pet/manifest.json` 配置。开发期即使没有 PNG，应用也会显示一个 CSS 占位兔子，方便先验证交互和状态机。
+```text
+idle
+rest_corner
+walk_left / walk_right / walk_up / walk_down
+run_left / run_right / run_up / run_down
+drag_hold / drag_release
+peek_left / peek_right
+hide
+popout_left / popout_right / popout_top / popout_bottom
+read_idle
+tap_happy / tap_annoyed
+```

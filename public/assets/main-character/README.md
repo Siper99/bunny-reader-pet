@@ -1,10 +1,10 @@
-Main character source assets.
+# Main Character Assets
 
-Current source sheet:
+The runtime sprite frames are in `public/pet/animations`.
+
+This folder is only for non-runtime previews and source references. The current
+preview image is generated from the procedural bunny-girl frames:
 
 ```text
-bunny-girl-spritesheet-v2.png
+bunny-girl-procedural-preview.png
 ```
-
-Use this file as the visual reference for drawing and exporting final animation
-frames into `public/pet/animations/<state>/`.

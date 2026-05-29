@@ -34,6 +34,10 @@ type PromptMode = "url" | "manual" | null;
 
 const INITIAL_MOTION_STATE: PetMotionState = {
   animation: "idle",
+  behavior: "rest",
+  direction: null,
+  dragging: false,
+  offscreen: false,
   paused: false,
   readerActive: false
 };
@@ -353,12 +357,7 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
 
     setImageFailed(false);
 
-    // When the pet bounces off a wall, the state flips between walk_left and
-    // walk_right. Both states share the same frame count (5) and fps (10), so
-    // we can keep the current frame position for a seamless direction change.
-    const isWalkTransition =
-      (prevState === "walk_left" || prevState === "walk_right") &&
-      (state === "walk_left" || state === "walk_right");
+    const isWalkTransition = isMovementState(prevState) && isMovementState(state);
 
     if (!isWalkTransition) {
       setFrameIndex(0);
@@ -457,9 +456,7 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
     onClick();
   }
 
-  // petSprite--walking is kept on the button for BOTH walk directions so the
-  // CSS bob animation is never restarted when the pet bounces off a wall.
-  const isWalking = state === "walk_left" || state === "walk_right";
+  const isWalking = isMovementState(state);
 
   return (
     <button
@@ -686,4 +683,8 @@ function isHttpUrl(value: string): boolean {
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "读取失败，可以改用手动粘贴文本。";
+}
+
+function isMovementState(state: PetAnimationState): boolean {
+  return state.startsWith("walk_") || state.startsWith("run_");
 }

@@ -1,33 +1,34 @@
-Put transparent frame PNGs in the state folder that matches the animation.
+# Pet Animation Frames
 
-Source sheet for the current character direction:
-
-```text
-public/assets/main-character/bunny-girl-spritesheet-v2.png
-```
-
-Expected frame layout:
+Runtime frames live in one folder per animation state:
 
 ```text
-enter/000.png ... enter/002.png
-exit/000.png ... exit/002.png
-idle/000.png ... idle/008.png
-read_idle/000.png ... read_idle/007.png
-walk_left/000.png ... walk_left/004.png
-walk_right/000.png ... walk_right/004.png
-tap_happy/000.png ... tap_happy/005.png
-tap_annoyed/000.png ... tap_annoyed/005.png
+public/pet/animations/<state>/<frame>.png
 ```
 
-Export rules:
+Rules:
 
-- Export each frame as a transparent PNG.
-- Keep every frame canvas at `236x342`.
-- Keep the character horizontally centered and bottom aligned.
-- Do not include the dark sheet background, dotted guide lines, blue floor glow,
-  or gold title labels in exported frames.
-- Use zero-padded filenames such as `000.png`, `001.png`, `002.png`.
-- If you change the frame count, update the matching `frames` list in
-  `public/pet/manifest.json`.
-- When replacing frames without renaming them, bump `assetVersion` in
-  `public/pet/manifest.json` so the app does not show cached images.
+- Every frame is a transparent `236x342` PNG.
+- Filenames are zero-padded: `000.png`, `001.png`, `002.png`.
+- Frame lists, fps, looping, and hitboxes are defined in `public/pet/manifest.json`.
+- Bump `assetVersion` in the manifest when replacing frames with the same names.
+
+Current state groups:
+
+```text
+idle
+rest_corner
+walk_left / walk_right / walk_up / walk_down
+run_left / run_right / run_up / run_down
+drag_hold / drag_release
+peek_left / peek_right
+hide
+popout_left / popout_right / popout_top / popout_bottom
+read_idle
+tap_happy / tap_annoyed
+enter / exit
+```
+
+The current PNG set is a procedural first pass for behavior development. It is
+safe to replace any state folder with hand-drawn frames later as long as the
+manifest frame list is kept in sync.
