@@ -5,7 +5,10 @@ import {
   chooseWeightedBehavior,
   clampWindowToBounds,
   createRandomVelocity,
+  edgeEntry,
+  edgeExitTarget,
   getMovementAnimation,
+  nearestEdge,
   stepTowardTarget,
   stepWindowMotion
 } from "./petMotion";
@@ -117,5 +120,39 @@ describe("pet motion", () => {
     expect(popout.animation).toBe("popout_left");
     expect(popout.start.x).toBeLessThan(popout.target.x);
     expect(popout.direction).toBe("right");
+  });
+
+  it("finds the nearest screen edge", () => {
+    const bounds = { x: 0, y: 0, width: 200, height: 200 };
+    // Closest to the left edge.
+    expect(nearestEdge({ x: 5, y: 80, width: 40, height: 40 }, bounds)).toBe(
+      "left"
+    );
+    // Closest to the bottom edge.
+    expect(nearestEdge({ x: 80, y: 150, width: 40, height: 40 }, bounds)).toBe(
+      "bottom"
+    );
+  });
+
+  it("builds a fully-offscreen exit target past the chosen edge", () => {
+    const bounds = { x: 0, y: 0, width: 200, height: 200 };
+    const rect = { x: 150, y: 80, width: 40, height: 40 };
+
+    const exit = edgeExitTarget(rect, bounds, "right");
+    expect(exit.direction).toBe("right");
+    // Left side of the sprite is past the right edge of the work area.
+    expect(exit.target.x).toBeGreaterThanOrEqual(bounds.x + bounds.width);
+    expect(exit.target.y).toBe(rect.y);
+  });
+
+  it("builds an edge entrance that starts offscreen and ends inside", () => {
+    const bounds = { x: 0, y: 0, width: 200, height: 200 };
+    const rect = { x: -40, y: 80, width: 40, height: 40 };
+
+    const entry = edgeEntry(rect, bounds, "left");
+    expect(entry.animation).toBe("popout_left");
+    expect(entry.direction).toBe("right");
+    expect(entry.start.x).toBeLessThan(entry.target.x);
+    expect(entry.target.x).toBeGreaterThanOrEqual(bounds.x);
   });
 });

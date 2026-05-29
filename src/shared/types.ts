@@ -22,6 +22,9 @@ export type PetAnimationState =
   | "popout_bottom"
   | "tap_happy"
   | "tap_annoyed"
+  | "dizzy"
+  | "fall"
+  | "getup"
   | "read_idle";
 
 export type PetBehaviorMode =

@@ -49,9 +49,13 @@ export function installBrowserPreviewApi(): void {
         listener({ type: "prompt-url" });
       }
     },
+    setInteractive() {},
+    updateGrabArea() {},
     startDrag() {},
     dragTo() {},
     endDrag() {},
+    reportDizzy() {},
+    throwPet() {},
     onMotionState(callback) {
       motionListeners.add(callback);
       callback(createPreviewMotion("idle", paused));

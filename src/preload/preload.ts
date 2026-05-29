@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { NovelPayload, PetMotionState } from "../shared/types";
+import type { NovelPayload, PetMotionState, Rect } from "../shared/types";
 
 type ReaderCommand =
   | { type: "prompt-url" }
@@ -30,6 +30,12 @@ const api = {
   openContextMenu(): void {
     ipcRenderer.send("pet:open-context-menu");
   },
+  setInteractive(interactive: boolean): void {
+    ipcRenderer.send("pet:set-interactive", interactive);
+  },
+  updateGrabArea(area: Rect | null): void {
+    ipcRenderer.send("pet:update-grab-area", area);
+  },
   startDrag(screenX: number, screenY: number): void {
     ipcRenderer.send("pet:start-drag", { screenX, screenY });
   },
@@ -38,6 +44,12 @@ const api = {
   },
   endDrag(): void {
     ipcRenderer.send("pet:end-drag");
+  },
+  reportDizzy(): void {
+    ipcRenderer.send("pet:dizzy");
+  },
+  throwPet(velocityX: number, velocityY: number): void {
+    ipcRenderer.send("pet:throw", { velocityX, velocityY });
   },
   onMotionState(callback: (state: PetMotionState) => void): Unsubscribe {
     const handler = (_event: Electron.IpcRendererEvent, state: PetMotionState) =>

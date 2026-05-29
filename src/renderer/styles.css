@@ -53,9 +53,8 @@ textarea {
   background: transparent;
   cursor: grab;
   touch-action: none;
-  transform: translateX(-50%) scale(var(--pet-scale));
+  transform: translateX(-50%);
   transform-origin: center bottom;
-  will-change: transform;
   -webkit-app-region: no-drag;
 }
 
@@ -63,46 +62,90 @@ textarea {
   cursor: grabbing;
 }
 
+.petVisual {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: scale(var(--pet-scale));
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+.grabProbe {
+  position: absolute;
+  pointer-events: none;
+}
+
 /* Unified walk animation — bound to .petSprite--walking which is present for
    BOTH walk_left and walk_right, so the animation is never restarted when the
    pet bounces off a screen edge and the direction class changes. */
-.petSprite--walking {
+.petSprite--walking .petVisual {
   animation: bob 620ms ease-in-out infinite;
 }
 
-.petSprite--run_left,
-.petSprite--run_right,
-.petSprite--run_up,
-.petSprite--run_down {
+.petSprite--run_left .petVisual,
+.petSprite--run_right .petVisual,
+.petSprite--run_up .petVisual,
+.petSprite--run_down .petVisual {
   animation-duration: 420ms;
 }
 
-.petSprite--rest_corner {
+.petSprite--rest_corner .petVisual {
   animation: breathe 1800ms ease-in-out infinite;
 }
 
-.petSprite--drag_hold {
+.petSprite--drag_hold .petVisual {
   animation: dragWiggle 460ms ease-in-out infinite;
 }
 
-.petSprite--drag_release,
-.petSprite--popout_left,
-.petSprite--popout_right,
-.petSprite--popout_top,
-.petSprite--popout_bottom {
+.petSprite--drag_release .petVisual,
+.petSprite--popout_left .petVisual,
+.petSprite--popout_right .petVisual,
+.petSprite--popout_top .petVisual,
+.petSprite--popout_bottom .petVisual {
   animation: hop 520ms cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
-.petSprite--hide {
+.petSprite--hide .petVisual {
   animation: vanish 520ms ease-out both;
 }
 
-.petSprite--tap_happy {
+.petSprite--tap_happy .petVisual {
   animation: hop 760ms cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
-.petSprite--tap_annoyed {
+.petSprite--tap_annoyed .petVisual {
   animation: shake 520ms ease-in-out;
+}
+
+/* Dizzy: the body wobbles side-to-side while gold stars orbit overhead. */
+.petSprite--dizzy .petVisual {
+  animation: dizzyWobble 640ms ease-in-out infinite;
+}
+
+.petSprite--dizzy .petVisual::after {
+  content: "✦ ✧ ✦";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  font-size: 84px;
+  font-weight: 700;
+  color: #f4c542;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 3px rgb(0 0 0 / 0.25);
+  pointer-events: none;
+  transform: translateX(-50%);
+  transform-origin: center center;
+  animation: starSpin 1100ms linear infinite;
+}
+
+/* Landed after a throw: tip over onto its side, then scramble back up. */
+.petSprite--fall .petVisual {
+  animation: tipOver 260ms ease-in both;
+}
+
+.petSprite--getup .petVisual {
+  animation: tipUp 380ms ease-out both;
 }
 
 .petSprite--read_idle {
@@ -450,57 +493,94 @@ textarea {
    themselves, not by CSS rotation/offset, avoiding double-animation conflict. */
 @keyframes bob {
   50% {
-    transform: translateX(-50%) translateY(-5px) scale(var(--pet-scale));
+    transform: translateY(-5px) scale(var(--pet-scale));
   }
 }
 
 @keyframes breathe {
   50% {
-    transform: translateX(-50%) translateY(2px) scale(var(--pet-scale));
+    transform: translateY(2px) scale(var(--pet-scale));
   }
 }
 
 @keyframes hop {
   35% {
-    transform: translateX(-50%) translateY(-18px) scale(var(--pet-hop-scale));
+    transform: translateY(-18px) scale(var(--pet-hop-scale));
   }
 }
 
 @keyframes dragWiggle {
   25% {
-    transform: translateX(calc(-50% - 3px)) rotate(-2deg)
-      scale(var(--pet-scale));
+    transform: translateX(-3px) rotate(-2deg) scale(var(--pet-scale));
   }
 
   75% {
-    transform: translateX(calc(-50% + 3px)) rotate(2deg)
-      scale(var(--pet-scale));
+    transform: translateX(3px) rotate(2deg) scale(var(--pet-scale));
   }
 }
 
 @keyframes vanish {
   100% {
     opacity: 0.15;
-    transform: translateX(-50%) translateY(10px) scale(0.3);
+    transform: translateY(10px) scale(0.3);
   }
 }
 
 @keyframes shake {
   20%,
   60% {
-    transform: translateX(calc(-50% - 8px)) rotate(-2deg)
-      scale(var(--pet-scale));
+    transform: translateX(-8px) rotate(-2deg) scale(var(--pet-scale));
   }
 
   40%,
   80% {
-    transform: translateX(calc(-50% + 8px)) rotate(2deg)
-      scale(var(--pet-scale));
+    transform: translateX(8px) rotate(2deg) scale(var(--pet-scale));
   }
 }
 
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes dizzyWobble {
+  0%,
+  100% {
+    transform: rotate(-9deg) scale(var(--pet-scale));
+  }
+
+  50% {
+    transform: rotate(9deg) scale(var(--pet-scale));
+  }
+}
+
+@keyframes starSpin {
+  to {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+@keyframes tipOver {
+  0% {
+    transform: rotate(0deg) scale(var(--pet-scale));
+  }
+
+  100% {
+    transform: rotate(78deg) scale(var(--pet-scale));
+  }
+}
+
+@keyframes tipUp {
+  0% {
+    transform: rotate(78deg) scale(var(--pet-scale));
+  }
+
+  60% {
+    transform: rotate(-8deg) scale(var(--pet-scale));
+  }
+
+  100% {
+    transform: rotate(0deg) scale(var(--pet-scale));
   }
 }

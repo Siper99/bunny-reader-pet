@@ -17,6 +17,13 @@ import {
   resolveAnimationState
 } from "../shared/animationState";
 import {
+  isDizzySpin,
+  pruneSamples,
+  type DragSample
+} from "../shared/dragGesture";
+import { createGrabArea, pointInRect } from "../shared/petHitbox";
+import { computeReleaseVelocity, releaseSpeed } from "../shared/throwPhysics";
+import {
   clearReaderSnapshot,
   createReaderSnapshot,
   loadReaderSnapshot,
@@ -27,6 +34,7 @@ import type {
   PetAnimationState,
   PetManifest,
   PetMotionState,
+  Rect,
   ReaderSnapshot
 } from "../shared/types";
 
@@ -43,6 +51,12 @@ const INITIAL_MOTION_STATE: PetMotionState = {
 };
 
 const DRAG_CLICK_TOLERANCE = 5;
+/** Rolling window of drag samples used for dizzy-spin detection. */
+const SPIN_WINDOW_MS = 5000;
+/** How long the dizzy reaction is shown (matches DIZZY_HOLD_MS in main). */
+const DIZZY_DURATION_MS = 2500;
+/** Minimum release speed (px/ms) for a drag-release to count as a throw. */
+const THROW_MIN_SPEED = 0.55;
 
 interface PetDragSession {
   pointerId: number;
@@ -65,6 +79,16 @@ export function App() {
   const [manualDraft, setManualDraft] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // The window is click-through by default — the MAIN process polls the cursor
+  // and only captures the mouse while it's over the bunny, so dragging always
+  // works and nothing else is blocked. Here we just force the whole window
+  // interactive while an overlay (reader / prompt / loading) is open.
+  const interactive = Boolean(reader) || promptMode !== null || loading;
+
+  useEffect(() => {
+    window.bunnyPet.setInteractive(interactive);
+  }, [interactive]);
 
   const activeAnimation = resolveAnimationState({
     motionState: motionState.animation,
@@ -129,7 +153,10 @@ export function App() {
       return;
     }
 
-    const durationMs = getAnimationDurationMs(manifest, overrideState);
+    const durationMs =
+      overrideState === "dizzy"
+        ? DIZZY_DURATION_MS
+        : getAnimationDurationMs(manifest, overrideState);
     const timer = window.setTimeout(() => setOverrideState(null), durationMs);
     return () => window.clearTimeout(timer);
   }, [manifest, overrideState]);
@@ -254,6 +281,17 @@ export function App() {
     setOverrideState(pickTapReaction());
   }
 
+  function handlePetDizzy() {
+    setOverrideState("dizzy");
+    window.bunnyPet.reportDizzy();
+  }
+
+  function handlePetThrow(velocityX: number, velocityY: number) {
+    // Clear any dizzy reaction so the throw arc/fall is what shows.
+    setOverrideState(null);
+    window.bunnyPet.throwPet(velocityX, velocityY);
+  }
+
   function handleContextMenu(event: React.MouseEvent) {
     event.preventDefault();
     window.bunnyPet.openContextMenu();
@@ -290,6 +328,8 @@ export function App() {
         manifest={manifest}
         state={activeAnimation}
         onClick={handlePetClick}
+        onDizzy={handlePetDizzy}
+        onThrow={handlePetThrow}
       />
 
       {reader ? (
@@ -339,15 +379,29 @@ interface PetSpriteProps {
   manifest: PetManifest | null;
   state: PetAnimationState;
   onClick: () => void;
+  onDizzy: () => void;
+  onThrow: (velocityX: number, velocityY: number) => void;
 }
 
-function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
+function PetSprite({
+  manifest,
+  state,
+  onClick,
+  onDizzy,
+  onThrow
+}: PetSpriteProps) {
   const definition = getAnimationDefinition(manifest, state);
   const [frameIndex, setFrameIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const visualRef = useRef<HTMLSpanElement | null>(null);
+  const grabProbeRef = useRef<HTMLSpanElement | null>(null);
+  const currentGrabAreaRef = useRef<Rect | null>(null);
   const dragSessionRef = useRef<PetDragSession | null>(null);
   const suppressClickRef = useRef(false);
+  // Rolling buffer of drag positions used to detect a dizzy spin.
+  const spinSamplesRef = useRef<DragSample[]>([]);
+  const dizzyTriggeredRef = useRef(false);
   // Tracks the previous state so we can decide whether to preserve frameIndex.
   const prevStateRef = useRef<PetAnimationState>(state);
 
@@ -395,8 +449,49 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
     return `${definition.framesPath}/${frame}${version}`;
   }, [definition, frameIndex, manifest?.assetVersion]);
 
+  useEffect(() => {
+    let frame = 0;
+    let lastSent = "";
+
+    function reportGrabArea() {
+      const source = definition ? grabProbeRef.current : visualRef.current;
+      const viewport = {
+        x: 0,
+        y: 0,
+        width: window.innerWidth,
+        height: window.innerHeight
+      };
+      const nextArea = source
+        ? createGrabArea(rectFromDom(source.getBoundingClientRect()), viewport)
+        : null;
+      const nextKey = nextArea ? rectKey(nextArea) : "null";
+
+      currentGrabAreaRef.current = nextArea;
+      if (nextKey !== lastSent) {
+        lastSent = nextKey;
+        window.bunnyPet.updateGrabArea(nextArea);
+      }
+
+      frame = window.requestAnimationFrame(reportGrabArea);
+    }
+
+    reportGrabArea();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      currentGrabAreaRef.current = null;
+      window.bunnyPet.updateGrabArea(null);
+    };
+  }, [definition, state]);
+
   function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) {
+      return;
+    }
+    const localPoint = { x: event.clientX, y: event.clientY };
+    const grabArea = currentGrabAreaRef.current;
+
+    if (!grabArea || !pointInRect(localPoint, grabArea)) {
       return;
     }
 
@@ -408,6 +503,8 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
       moved: false
     };
     suppressClickRef.current = false;
+    spinSamplesRef.current = [];
+    dizzyTriggeredRef.current = false;
     window.bunnyPet.startDrag(event.screenX, event.screenY);
   }
 
@@ -430,6 +527,23 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
     suppressClickRef.current = true;
     setDragging(true);
     window.bunnyPet.dragTo(event.screenX, event.screenY);
+
+    // Track the gesture and trigger a dizzy reaction after sustained spinning.
+    if (!dizzyTriggeredRef.current) {
+      const now = Date.now();
+      const samples = pruneSamples(
+        [...spinSamplesRef.current, { x: event.screenX, y: event.screenY, t: now }],
+        now,
+        SPIN_WINDOW_MS
+      );
+      spinSamplesRef.current = samples;
+
+      if (isDizzySpin(samples)) {
+        dizzyTriggeredRef.current = true;
+        spinSamplesRef.current = [];
+        onDizzy();
+      }
+    }
   }
 
   function finishDrag(event: PointerEvent<HTMLButtonElement>) {
@@ -442,9 +556,20 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
+    const moved = dragSession.moved;
     dragSessionRef.current = null;
     setDragging(false);
     window.bunnyPet.endDrag();
+
+    // A fast flick on release becomes a throw (parabola + fall). A dizzy spin
+    // clears the sample buffer, so spinning never doubles as a throw.
+    if (moved) {
+      const release = computeReleaseVelocity(spinSamplesRef.current);
+      if (releaseSpeed(release) >= THROW_MIN_SPEED) {
+        onThrow(release.vx, release.vy);
+      }
+    }
+    spinSamplesRef.current = [];
   }
 
   function handleClick() {
@@ -457,6 +582,14 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
   }
 
   const isWalking = isMovementState(state);
+  const grabProbeStyle = definition
+    ? {
+        left: `${definition.hitbox.x}px`,
+        top: `${definition.hitbox.y}px`,
+        width: `${definition.hitbox.width}px`,
+        height: `${definition.hitbox.height}px`
+      }
+    : undefined;
 
   return (
     <button
@@ -476,20 +609,46 @@ function PetSprite({ manifest, state, onClick }: PetSpriteProps) {
       onPointerMove={handlePointerMove}
       onPointerUp={finishDrag}
     >
-      {src && !imageFailed ? (
-        <img
-          className="petFrame"
-          src={src}
-          alt=""
-          draggable={false}
-          onLoad={() => setImageFailed(false)}
-          onError={() => setImageFailed(true)}
+      <span className="petVisual" ref={visualRef}>
+        <span
+          className="grabProbe"
+          ref={grabProbeRef}
+          style={grabProbeStyle}
+          aria-hidden="true"
         />
-      ) : (
-        <FallbackBunny state={state} />
-      )}
+        {src && !imageFailed ? (
+          <img
+            className="petFrame"
+            src={src}
+            alt=""
+            draggable={false}
+            onLoad={() => setImageFailed(false)}
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <FallbackBunny state={state} />
+        )}
+      </span>
     </button>
   );
+}
+
+function rectFromDom(rect: DOMRect): Rect {
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
+function rectKey(rect: Rect): string {
+  return [
+    rect.x.toFixed(1),
+    rect.y.toFixed(1),
+    rect.width.toFixed(1),
+    rect.height.toFixed(1)
+  ].join(":");
 }
 
 function FallbackBunny({ state }: { state: PetAnimationState }) {

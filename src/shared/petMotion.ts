@@ -38,6 +38,16 @@ export interface PopoutPlacement {
 
 export type ScheduledBehavior = Exclude<PetBehaviorMode, "drag" | "read">;
 
+/** A physical screen edge (note: "top"/"bottom" are not `PetDirection`s). */
+export type ScreenEdge = "left" | "right" | "top" | "bottom";
+
+export interface EdgeExit {
+  /** Fully-offscreen rect just past the chosen edge. */
+  target: Rect;
+  /** Movement direction while walking out through the edge. */
+  direction: PetDirection;
+}
+
 const REST_MARGIN = 18;
 const PEEK_VISIBLE_FRACTION = 0.48;
 const OFFSCREEN_GAP = 18;
@@ -293,6 +303,121 @@ export function choosePopoutPlacement(
         target: {
           ...rect,
           x: xInside,
+          y: bounds.y + bounds.height - rect.height - REST_MARGIN
+        },
+        animation: "popout_bottom",
+        direction: "up"
+      };
+  }
+}
+
+/**
+ * Picks the screen edge the pet is currently closest to. Used to make an
+ * explicit "hide" walk out through the nearest edge (rather than vanish).
+ */
+export function nearestEdge(rect: Rect, bounds: Rect): ScreenEdge {
+  const distLeft = rect.x - bounds.x;
+  const distRight = bounds.x + bounds.width - (rect.x + rect.width);
+  const distTop = rect.y - bounds.y;
+  const distBottom = bounds.y + bounds.height - (rect.y + rect.height);
+  const min = Math.min(distLeft, distRight, distTop, distBottom);
+
+  if (min === distLeft) {
+    return "left";
+  }
+  if (min === distRight) {
+    return "right";
+  }
+  if (min === distTop) {
+    return "top";
+  }
+  return "bottom";
+}
+
+/**
+ * Builds a fully-offscreen target just past the given edge, plus the walk
+ * direction to get there. The cross-axis position is preserved.
+ */
+export function edgeExitTarget(
+  rect: Rect,
+  bounds: Rect,
+  edge: ScreenEdge
+): EdgeExit {
+  switch (edge) {
+    case "left":
+      return {
+        target: { ...rect, x: bounds.x - rect.width - OFFSCREEN_GAP },
+        direction: "left"
+      };
+    case "right":
+      return {
+        target: { ...rect, x: bounds.x + bounds.width + OFFSCREEN_GAP },
+        direction: "right"
+      };
+    case "top":
+      return {
+        target: { ...rect, y: bounds.y - rect.height - OFFSCREEN_GAP },
+        direction: "up"
+      };
+    default:
+      return {
+        target: { ...rect, y: bounds.y + bounds.height + OFFSCREEN_GAP },
+        direction: "down"
+      };
+  }
+}
+
+/**
+ * Deterministic popout entrance through a specific edge (mirror of
+ * choosePopoutPlacement but for a known edge). The cross-axis coordinate is
+ * clamped into the visible area so the pet re-enters near where it left.
+ */
+export function edgeEntry(
+  rect: Rect,
+  bounds: Rect,
+  edge: ScreenEdge
+): PopoutPlacement {
+  const clampedY = Math.min(
+    Math.max(rect.y, bounds.y + REST_MARGIN),
+    bounds.y + bounds.height - rect.height - REST_MARGIN
+  );
+  const clampedX = Math.min(
+    Math.max(rect.x, bounds.x + REST_MARGIN),
+    bounds.x + bounds.width - rect.width - REST_MARGIN
+  );
+
+  switch (edge) {
+    case "left":
+      return {
+        start: { ...rect, x: bounds.x - rect.width + 26, y: clampedY },
+        target: { ...rect, x: bounds.x + REST_MARGIN, y: clampedY },
+        animation: "popout_left",
+        direction: "right"
+      };
+    case "right":
+      return {
+        start: { ...rect, x: bounds.x + bounds.width - 26, y: clampedY },
+        target: {
+          ...rect,
+          x: bounds.x + bounds.width - rect.width - REST_MARGIN,
+          y: clampedY
+        },
+        animation: "popout_right",
+        direction: "left"
+      };
+    case "top":
+      return {
+        start: { ...rect, x: clampedX, y: bounds.y - rect.height + 26 },
+        target: { ...rect, x: clampedX, y: bounds.y + REST_MARGIN },
+        animation: "popout_top",
+        direction: "down"
+      };
+    default:
+      return {
+        start: { ...rect, x: clampedX, y: bounds.y + bounds.height - 26 },
+        target: {
+          ...rect,
+          x: clampedX,
           y: bounds.y + bounds.height - rect.height - REST_MARGIN
         },
         animation: "popout_bottom",

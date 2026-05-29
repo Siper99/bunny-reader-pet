@@ -35,7 +35,7 @@ export function createTray(
   tray = new Tray(icon);
   tray.setToolTip("Bunny Reader Pet");
   tray.setContextMenu(createTrayMenu(window, motion));
-  tray.on("click", () => showPetWindow(window));
+  tray.on("click", () => motion.enterFromEdge());
 
   return tray;
 }
@@ -62,7 +62,7 @@ export function openPetContextMenu(
     },
     {
       label: "隐藏",
-      click: () => window.hide()
+      click: () => motion.exitToEdge()
     },
     { type: "separator" },
     {
@@ -81,7 +81,7 @@ function createTrayMenu(
   return Menu.buildFromTemplate([
     {
       label: "显示桌宠",
-      click: () => showPetWindow(window)
+      click: () => motion.enterFromEdge()
     },
     {
       label: "暂停移动",
@@ -94,15 +94,6 @@ function createTrayMenu(
       click: () => app.quit()
     }
   ]);
-}
-
-function showPetWindow(window: BrowserWindow): void {
-  if (window.isDestroyed()) {
-    return;
-  }
-
-  window.show();
-  window.focus();
 }
 
 function pasteClipboardIntoReader(window: BrowserWindow): void {
